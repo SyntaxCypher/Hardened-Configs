@@ -1,0 +1,161 @@
+# Harden Nginx Configuration
+
+# Set the user and group for Nginx to run as
+user nginx;
+worker_processes auto;
+
+# Basic Security Settings
+
+# Restrict the server tokens to only show 'nginx' to reduce information leakage
+server_tokens off;
+
+# Set the secure permissions for web files and directories
+location ~ /\. {
+    deny all;
+}
+
+# Prevent access to hidden files and directories
+location ~ /\.ht {
+    deny all;
+}
+
+# Disable directory listing
+autoindex off;
+
+# Limit request methods to known safe ones
+if ($request_method !~ ^(GET|POST|HEAD)$) {
+    return 405;
+}
+
+# Content Security Policy (CSP)
+# Add a Content Security Policy header to protect against XSS attacks
+add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';";
+
+# Prevent clickjacking
+add_header X-Frame-Options "DENY";
+add_header X-Content-Type-Options "nosniff";
+
+# Enable HSTS (HTTP Strict Transport Security)
+add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+
+# SSL Settings
+
+# Use strong SSL settings with modern ciphers
+ssl_protocols TLSv1.2 TLSv1.3;
+ssl_prefer_server_ciphers off;
+ssl_ciphers 'TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384';
+
+# Enable OCSP stapling for faster and more secure SSL/TLS connections
+ssl_stapling on;
+ssl_stapling_verify on;
+resolver 8.8.8.8 8.8.4.4 valid=300s;
+resolver_timeout 5s;
+
+# Set up a Diffie-Hellman Ephemeral Parameters file for improved security
+ssl_dhparam /etc/nginx/ssl/dhparam.pem;
+
+# Content Compression
+
+# Enable Gzip for compression
+gzip on;
+gzip_min_length 1000;
+gzip_proxied any;
+gzip_types text/plain text/css text/xml application/json application/javascript application/xml+rss application/atom+xml;
+gzip_vary on;
+
+# Nginx Hardening Measures
+
+# Disable server tokens
+server_tokens off;
+
+# Limit the HTTP methods allowed on the server
+if ($request_method !~ ^(GET|POST|HEAD)$) {
+    return 405;
+}
+
+# Block known malicious IP addresses and bots
+include /etc/nginx/conf.d/blacklist.conf;
+
+# Limit client request body size for security
+client_max_body_size 10M;
+
+# Define security headers
+add_header X-Content-Type-Options "nosniff";
+add_header X-Frame-Options "SAMEORIGIN";
+add_header X-XSS-Protection "1; mode=block";
+
+# Custom error pages for common status codes
+error_page 403 /403.html;
+error_page 404 /404.html;
+error_page 500 502 503 504 /50x.html;
+
+# Block access to .htaccess and .htpasswd files
+location ~ /\.ht {
+    deny all;
+}
+
+# Disable access to hidden files and directories
+location ~ ~$ {
+    access_log off;
+    log_not_found off;
+    deny all;
+}
+
+# Set up rate limiting to protect against DDoS attacks
+limit_req_zone $binary_remote_addr zone=one:10m rate=1r/s;
+
+# Deny access to XMLRPC and wp-login.php to prevent brute-force attacks (if not using WordPress, remove this block)
+location ~* /(?:xmlrpc\.php|wp-login\.php) {
+    deny all;
+    access_log off;
+    log_not_found off;
+}
+
+# Additional Security Measures (adjust as needed)
+
+# Block access to specific files or directories
+location ~* (?:/\.git|/wp-config\.php|/readme\.html|/license\.txt) {
+    deny all;
+    access_log off;
+    log_not_found off;
+}
+
+# Add security headers to static files
+location ~* \.(css|js|jpe?g|gif|png|ico)$ {
+    add_header Cache-Control "public, max-age=31536000, immutable";
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    add_header X-Content-Type-Options "nosniff";
+    add_header X-Frame-Options "SAMEORIGIN";
+}
+
+# Configure the log format for enhanced security
+log_format main '$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"';
+
+# Define the access log format and location
+access_log /var/log/nginx/access.log main;
+
+# Define the error log location
+error_log /var/log/nginx/error.log;
+
+# Virtual Host Configuration
+
+server {
+    listen 80;
+    server_name yourdomain.com www.yourdomain.com;
+
+    # Redirect HTTP to HTTPS
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name yourdomain.com www.yourdomain.com;
+
+    ssl_certificate /etc/nginx/ssl/yourdomain.crt;
+    ssl_certificate_key /etc/nginx/ssl/yourdomain.key;
+
+    root /var/www/html;
+    index index.html;
+
+    # Additional server configuration here
+}

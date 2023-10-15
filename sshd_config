@@ -1,0 +1,99 @@
+# /etc/ssh/sshd_config
+
+# Port to listen on
+Port 22
+
+# Listen on IPv4 only
+AddressFamily inet
+
+# Disable root login
+PermitRootLogin no
+
+# Allow only key-based authentication
+PasswordAuthentication no
+
+# Allow only specific users to log in
+AllowUsers yourusername
+
+# Disable empty passwords
+PermitEmptyPasswords no
+
+# Limit the number of authentication attempts
+MaxAuthTries 3
+
+# Disable X11 forwarding
+X11Forwarding no
+
+# Disable password-based authentication for root
+# (assuming you have already created a non-root user)
+Match User root
+PasswordAuthentication no
+
+# Allow only specific ciphers and MACs
+Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com
+MACs hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com
+
+# Only allow protocol version 2
+Protocol 2
+
+# Set a banner message for SSH clients
+Banner /etc/issue.net
+
+# Use a restrictive umask for new files and directories
+UMask 077
+
+# Enable compression for SSH session
+Compression yes
+
+# Only use strong key exchange algorithms
+KexAlgorithms curve25519-sha256@libssh.org,diffie-hellman-group-exchange-sha256
+
+# Disconnect idle sessions after a period of inactivity
+ClientAliveInterval 300
+ClientAliveCountMax 2
+
+# Log SSH sessions for auditing
+LogLevel VERBOSE
+
+# Only allow specific SSH clients to connect (optional, you can use a specific pattern)
+# AllowUsers yourusername@192.168.1.* yourusername@10.0.0.*
+
+# Disable access via password-protected SSH keys
+HostbasedAuthentication no
+PasswordAuthentication no
+PermitRootLogin no
+
+# Enable 2-factor authentication (if desired)
+# ChallengeResponseAuthentication yes
+
+# Disable TCP forwarding
+AllowTcpForwarding no
+GatewayPorts no
+PermitOpen none
+
+# Limit the user sessions
+MaxSessions 2
+
+# Specify a custom MAC for integrity verification
+# MACs hmac-sha2-512,hmac-sha2-256
+
+# Specify custom Ciphers
+# Ciphers aes256-ctr,aes192-ctr,aes128-ctr
+
+# Enable hardware token authentication (if applicable)
+#AuthenticationMethods publickey,keyboard-interactive:pam
+
+# Only allow specific SSH groups to connect (if used)
+# AllowGroups ssh-users
+
+# Allow users to run only specific commands
+# Match User username
+#    AllowTcpForwarding no
+#    PermitRootLogin no
+#    PasswordAuthentication yes
+#    AllowAgentForwarding no
+#    ForceCommand /bin/ls
+
+# Disable challenge-response authentication
+ChallengeResponseAuthentication no
+UsePAM yes
